@@ -87,8 +87,7 @@ if __name__=='__main__':
     preserve = parse_txt(txt_path)
     this_year = date.today().year
     
-    update_xls = True # 更新"歷年機車位(戶號).xlsx" 並產生 "歷年機車位(門牌).xlsx"
-    max_group_size = 5
+    max_group_size = 5 # 每組閉環容許的機車格數量上限
 
     df_annual = pd.read_excel(xls_path, index_col=0)
     assert this_year-1 in df_annual.columns, '{}需包含{}年紀錄'.format(os.path.basename(xls_path), this_year-1)
@@ -103,36 +102,36 @@ if __name__=='__main__':
 
     if bool(preserve):
         new_no = np.array(list(preserve), dtype=np.uint8)
-        new_house = np.array(list(preserve.values()))
-        pre_no = np.vectorize(original_map.get)(new_house)
-        pre_house = df_pre.loc[new_no].to_numpy()
+        new_user = np.array(list(preserve.values()))
+        pre_no = np.vectorize(original_map.get)(new_user)
+        pre_user = df_pre.loc[new_no].to_numpy()
 
         # 排除沒換的車格
-        lg = pre_house==new_house
+        lg = pre_user==new_user
         if lg.any():
             keepstay_ind = new_no[lg] - 1
-            keepstay_house = new_house[lg]
+            keepstay_house = new_user[lg]
             new_no = new_no[~lg]
-            new_house = new_house[~lg]
+            new_user = new_user[~lg]
             pre_no = pre_no[~lg]
-            pre_house = pre_house[~lg]
+            pre_user = pre_user[~lg]
         else:
             keepstay_ind = np.zeros(0, dtype=np.uint8)
         
         # 排除預留但彼此互換的車格
         #   - condition1: 預留車格新舊住戶皆為卸任管委
         #   - condition2: 卸任管委去年也停在預留車格中
-        lg1 = np.isin(pre_house, new_house, assume_unique=True)
+        lg1 = np.isin(pre_user, new_user, assume_unique=True)
         lg2 = np.isin(pre_no, new_no, assume_unique=True)
         lg = lg1 & lg2
         if lg.any():
-            assert set(new_house[lg])==set(pre_house[lg]), 'Unexpect error'
+            assert set(new_user[lg])==set(pre_user[lg]), 'Unexpect error'
             interchg_ind = new_no[lg] - 1
-            interchg_house = new_house[lg]
+            interchg_house = new_user[lg]
             new_no = new_no[~lg]
-            new_house = new_house[~lg]
+            new_user = new_user[~lg]
             pre_no = pre_no[~lg]
-            pre_house = pre_house[~lg]
+            pre_user = pre_user[~lg]
         else:
             interchg_ind = np.zeros(0, dtype=np.uint8)
     else:
@@ -164,9 +163,9 @@ if __name__=='__main__':
         be_last[pointer[ix]-1] = False
     result_ind[pointer] = participate_ind
 
-    # 決定各組互換的車格數量(2 - max_group_size)
+    # 決定各組互換的車格數量(2 ~ max_group_size)
     group = np.zeros(df_pre.shape[0], dtype=np.uint8)
-    new_house = np.empty(df_pre.shape[0], dtype=object)
+    new_user = np.empty(df_pre.shape[0], dtype=object)
     k = 0
     gp = 0
     while k < N:
@@ -182,10 +181,10 @@ if __name__=='__main__':
 
         for q in range(k, k+group_size-1):
             if not be_last[q]: # 為保留車格
-                new_house[q] = preserve[result_ind[q]+1]
+                new_user[q] = preserve[result_ind[q]+1]
             else:
-                new_house[q] = df_pre.iat[result_ind[q+1]] # 下一順位車格的舊住戶就是目前車格的新住戶 (由下往上遞補)
-        new_house[k+group_size-1] = df_pre.iat[result_ind[k]] # 最後一順位車格新住戶是第一順位車格的舊住戶
+                new_user[q] = df_pre.iat[result_ind[q+1]] # 下一順位車格的舊住戶就是目前車格的新住戶 (由下往上遞補)
+        new_user[k+group_size-1] = df_pre.iat[result_ind[k]] # 最後一順位車格新住戶是第一順位車格的舊住戶
 
         k += group_size
         gp += 1
@@ -194,7 +193,7 @@ if __name__=='__main__':
     if interchg_ind.size > 0:
         result_ind = np.concatenate((result_ind, interchg_ind))
         group[k:k+interchg_ind.size] = gp
-        new_house[k:k+interchg_ind.size] = interchg_house
+        new_user[k:k+interchg_ind.size] = interchg_house
         k += interchg_ind.size
         gp += 1
 
@@ -202,10 +201,10 @@ if __name__=='__main__':
     if keepstay_ind.size > 0:
         result_ind = np.concatenate((result_ind, keepstay_ind))
         group[k:] = gp
-        new_house[k:] = keepstay_house
+        new_user[k:] = keepstay_house
 
     df_new = df_pre.iloc[result_ind].to_frame()
-    df_new.insert(1, this_year, new_house)
+    df_new.insert(1, this_year, new_user)
     df_new.insert(2, 'group', group)
     df_annual[this_year] = df_new[this_year]
 
