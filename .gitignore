@@ -1,0 +1,5 @@
+.vscode/
+__pycache__/
+抽籤結果/
+chain.py
+test.py
