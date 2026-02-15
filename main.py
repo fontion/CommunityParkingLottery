@@ -270,6 +270,14 @@ def draw_lottery(df_pre, preserve, max_group_size):
     assert set(new_house)==set(all_house), '抽籤結果沒有包含所有戶號'
     for no, house in preserve.items():
         assert house==new_house[result_ind==no-1][0], '預留車格的住戶不正確'
+    # 檢查組別內的車格是否為封閉循環且依序排列
+    for gp in range(1, group[-1]+1):
+        loc = np.nonzero(group==gp)[0]
+        if gp != group[-1] or df_pre.iat[result_ind[loc[0]]]!=new_house[loc[0]]: # 這組不是機車格不動的組別
+            arg = np.roll(loc, 1)
+            assert np.array_equal(df_pre.iloc[result_ind[loc]].to_numpy(), new_house[arg]), 'Sanity check failed!'
+        else:
+            assert np.array_equal(df_pre.iloc[result_ind[loc]].to_numpy(), new_house[loc]), 'Sanity check failed!'
 
     df_new = df_pre.iloc[result_ind].to_frame()
     df_new.insert(1, this_year, new_house)

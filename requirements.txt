@@ -2,3 +2,4 @@ python
 numpy
 pandas
 openpyxl
+tqdm
