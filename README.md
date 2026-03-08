@@ -61,6 +61,10 @@ conda activate lijie
    ```
    python main.py
    ```
+   或使用Web UI介面 (由住戶提供)
+   ```
+   python app.py
+   ```
 4. 程式會自動建立「抽籤結果」資料夾，並輸出抽籤結果，包含四個檔案(假設為2026年抽籤)：
    > 2026抽籤結果(戶號).xlsx <br>
    > 2026抽籤結果(門牌).xlsx <br>
